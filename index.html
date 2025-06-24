@@ -55,7 +55,7 @@
     button:hover {
       background-color: #038f5e;
     }
-    #status, #orderStatus {
+    #status, #orderStatus, #confirmStatus {
       font-weight: bold;
       margin-top: 10px;
     }
@@ -96,11 +96,11 @@
       <p id="orderStatus"></p>
       <p id="paymentNote" style="display:none; margin-top: 10px; font-style: italic;">🙏 If you loved the mangoes, we'd be grateful for your support. You can make the payment below!</p>
       <div id="payButton" style="display: none;">
-        <a id="gpayLink" target="_blank" style="text-decoration: none;">
+        <a id="gpayLink" href="#" onclick="launchGPay(event)" style="text-decoration: none;">
           <button style="background-color: #4285F4;">Pay Now via Google Pay</button>
         </a>
         <br/>
-        <a id="phonepeLink" target="_blank" style="text-decoration: none;">
+        <a id="phonepeLink" href="#" onclick="launchPhonePe(event)" style="text-decoration: none;">
           <button id="phonepeBtn" style="background-color: #5e35b1; margin-top: 10px;">Pay via PhonePe</button>
         </a>
         <br/>
@@ -114,88 +114,13 @@
     const SUPABASE_URL = "https://mqslfvseexirbrsxpuws.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xc2xmdnNlZXhpcmJyc3hwdXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NDI4OTEsImV4cCI6MjA2NjMxODg5MX0.bSPcphsl_YOtv3_z07AjU-3BX6wiueW5_xan5KR2f-U";
 
-    async function submitFeedback() {
-      const block = document.getElementById("block").value.trim();
-      const flat = document.getElementById("flat").value.trim();
-      const feedback = document.getElementById("feedback").value.trim();
-      const status = document.getElementById("status");
-
-      if (!block || !flat || !feedback) {
-        status.innerText = "❌ Please fill in all fields.";
-        status.className = "error";
-        return;
-      }
-
-      const queryURL = `${SUPABASE_URL}/rest/v1/feedback?block=eq.${block}&flat=eq.${flat}&select=feedback`;
-      const existing = await fetch(queryURL, {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
-        }
-      });
-
-      const result = await existing.json();
-
-      if (result.length > 0) {
-        const oldFeedback = result[0].feedback;
-        const confirmOverwrite = confirm(`Feedback already exists:\n\"${oldFeedback}\"\n\nDo you want to overwrite it?`);
-        if (!confirmOverwrite) {
-          status.innerText = "❌ Submission canceled.";
-          status.className = "error";
-          return;
-        }
-
-        const patchURL = `${SUPABASE_URL}/rest/v1/feedback?block=eq.${block}&flat=eq.${flat}`;
-        const patchRes = await fetch(patchURL, {
-          method: "PATCH",
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal"
-          },
-          body: JSON.stringify({ feedback })
-        });
-
-        if (patchRes.ok) {
-          status.innerText = "✅ Feedback updated successfully!";
-          status.className = "";
-        } else {
-          status.innerText = "❌ Error updating feedback.";
-          status.className = "error";
-        }
-      } else {
-        const postRes = await fetch(`${SUPABASE_URL}/rest/v1/feedback`, {
-          method: "POST",
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal"
-          },
-          body: JSON.stringify({ block, flat, feedback })
-        });
-
-        if (postRes.ok) {
-          status.innerText = "✅ Feedback submitted!";
-          status.className = "";
-        } else {
-          status.innerText = "❌ Error submitting feedback.";
-          status.className = "error";
-        }
-      }
-
-      document.getElementById("block").value = "";
-      document.getElementById("flat").value = "";
-      document.getElementById("feedback").value = "";
-    }
+    let amount = 0, kgs = 0, block = '', flat = '';
 
     async function calculatePayment() {
-      const block = document.getElementById("blockPay").value.trim();
-      const flat = document.getElementById("flatPay").value.trim();
+      block = document.getElementById("blockPay").value.trim();
+      flat = document.getElementById("flatPay").value.trim();
       const orderStatus = document.getElementById("orderStatus");
       const payButton = document.getElementById("payButton");
-      const gpayLink = document.getElementById("gpayLink");
 
       if (!block || !flat) {
         orderStatus.innerText = "❌ Please select both Block and Flat Number.";
@@ -221,23 +146,29 @@
         return;
       }
 
-      const kgs = data[0].kgs;
-      const amount = kgs * 99;
+      kgs = data[0].kgs;
+      amount = kgs * 99;
 
       orderStatus.innerText = `✅ ${kgs} kg ordered. Total amount: ₹${amount}`;
       orderStatus.className = "";
-      gpayLink.href = `https://pay.google.com/gp/p/ui/pay?recipient=+919676213294&amount=${amount}00&currency=INR&note=Payment%20for%20${kgs}kg%20mango%20-%20Block%20${block}%20Flat%20${flat}`;
-
-      const phonepeLink = `upi://pay?pa=9676213294@upi&pn=Sindhura%20Mangoes&am=${amount}&cu=INR&tn=Payment%20for%20${kgs}kg%20mango%20-%20Block%20${block}%20Flat%20${flat}`;
-      document.getElementById("phonepeLink").href = phonepeLink;
 
       document.getElementById("paymentNote").style.display = "block";
       payButton.style.display = "block";
     }
 
+    function launchGPay(event) {
+      event.preventDefault();
+      const upiLink = `upi://pay?pa=9676213294@upi&pn=Sindhura%20Mangoes&am=${amount}&cu=INR&tn=Payment%20for%20${kgs}kg%20mango%20-%20Block%20${block}%20Flat%20${flat}`;
+      window.location.href = upiLink;
+    }
+
+    function launchPhonePe(event) {
+      event.preventDefault();
+      const upiLink = `upi://pay?pa=9676213294@upi&pn=Sindhura%20Mangoes&am=${amount}&cu=INR&tn=Payment%20for%20${kgs}kg%20mango%20-%20Block%20${block}%20Flat%20${flat}`;
+      window.location.href = upiLink;
+    }
+
     async function confirmPayment() {
-      const block = document.getElementById("blockPay").value.trim();
-      const flat = document.getElementById("flatPay").value.trim();
       const confirmStatus = document.getElementById("confirmStatus");
 
       if (!block || !flat) {
@@ -246,7 +177,8 @@
         return;
       }
 
-      const patchURL = `${SUPABASE_URL}/rest/v1/orderInfo?block=eq.${block}&flat=eq.${flat}`;
+      const patchURL = `${SUPABASE_URL}/rest/v1/paymentinfo?block=eq.${block}&flat=eq.${flat}`;
+
       const res = await fetch(patchURL, {
         method: "PATCH",
         headers: {
@@ -255,7 +187,7 @@
           "Content-Type": "application/json",
           "Prefer": "return=minimal"
         },
-        body: JSON.stringify({ payment_done: true })
+        body: JSON.stringify({ paymentdone: true })
       });
 
       if (res.ok) {
