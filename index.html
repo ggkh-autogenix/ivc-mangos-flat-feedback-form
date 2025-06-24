@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Flat Feedback Form</title>
+  <style>
+    body { font-family: Arial; padding: 2rem; max-width: 600px; margin: auto; }
+    input, textarea { width: 100%; padding: 10px; margin: 10px 0; }
+    button { padding: 10px 20px; }
+    .success { color: green; }
+  </style>
+</head>
+<body>
+  <h2>Submit Feedback</h2>
+  <form id="feedbackForm">
+    <label>Block:</label>
+    <input type="text" id="block" required />
+    
+    <label>Flat Number:</label>
+    <input type="text" id="flat" required />
+    
+    <label>Feedback:</label>
+    <textarea id="feedback" required></textarea>
+    
+    <button type="submit">Submit</button>
+  </form>
+  
+  <p id="status" class="success"></p>
+
+  <script>
+    const scriptURL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEBAPP_URL_HERE";
+
+    document.getElementById("feedbackForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const block = document.getElementById("block").value;
+      const flat = document.getElementById("flat").value;
+      const feedback = document.getElementById("feedback").value;
+
+      fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ block, flat, feedback }),
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById("status").innerText = "✅ Feedback saved successfully!";
+        document.getElementById("feedbackForm").reset();
+      })
+      .catch(error => {
+        document.getElementById("status").innerText = "❌ Error submitting feedback.";
+      });
+    });
+  </script>
+</body>
+</html>
+  
