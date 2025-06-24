@@ -1,21 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Flat Feedback Form</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sindhura Mango Feedback</title>
   <style>
-    body { font-family: Arial; padding: 20px; max-width: 500px; margin: auto; }
-    input, textarea, button { display: block; width: 100%; margin: 10px 0; padding: 10px; }
-    #status { color: green; font-weight: bold; }
-    .error { color: red; font-weight: bold; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #fff8ef;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+    header {
+      background-color: #ffd369;
+      padding: 20px;
+      text-align: center;
+      border-radius: 0 0 20px 20px;
+    }
+    header h1 {
+      margin: 0;
+      color: #222;
+    }
+    .intro, .feedback-section, .payment-section {
+      background: white;
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+    h2 {
+      margin-top: 0;
+    }
+    input, textarea, button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 1em;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #04aa6d;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #038f5e;
+    }
+    #status, #orderStatus {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .error {
+      color: red;
+    }
   </style>
 </head>
 <body>
-  <h2>Submit Feedback</h2>
-  <input type="text" id="block" placeholder="Block" required />
-  <input type="text" id="flat" placeholder="Flat Number" required />
-  <textarea id="feedback" placeholder="Your Feedback" required></textarea>
-  <button onclick="submitFeedback()">Submit</button>
-  <p id="status"></p>
+  <header>
+    <h1>🍋 Sindhura Mangoes – A Taste of Tradition</h1>
+  </header>
+  <div class="container">
+    <div class="intro">
+      <p>This weekend, we shared the rich flavor of <strong>tree-ripened Sindhura mangoes</strong> — naturally sweet, 100% pure, and chemical-free!</p>
+      <p>🌳 Grown in the fertile lands of <em>Palamaner Mandal, Chittoor District (Andhra Pradesh)</em>, these mangoes are ripened 85% on the tree for that signature juicy texture, vibrant red-yellow skin, and sweet-tangy taste.</p>
+      <p><strong>The IVC family alone ordered over 100 KGs!</strong></p>
+      <p>We hope you’ve tasted and enjoyed them as much as we enjoyed delivering them to you. 🙏</p>
+      <p><strong>Please take a moment to share your feedback — it means a lot to us!</strong></p>
+    </div>
+
+    <div class="feedback-section">
+      <h2>📝 Share Your Feedback</h2>
+      <input type="text" id="block" placeholder="Block" required />
+      <input type="text" id="flat" placeholder="Flat Number" required />
+      <textarea id="feedback" placeholder="Your Feedback" required></textarea>
+      <button onclick="submitFeedback()">Submit Feedback</button>
+      <p id="status"></p>
+    </div>
+
+    <div class="payment-section">
+      <h2>💰 Make a Payment</h2>
+      <label for="blockPay">Select Block</label>
+      <input type="text" id="blockPay" placeholder="Block (e.g., A)" />
+      <label for="flatPay">Select Flat Number</label>
+      <input type="text" id="flatPay" placeholder="Flat Number (e.g., 101)" />
+      <button onclick="calculatePayment()">Check Due Amount</button>
+      <p id="orderStatus"></p>
+      $1
+        <a id="phonepeLink" target="_blank" style="text-decoration: none; display:none;" ><button id="phonepeBtn" style="background-color: #5e35b1; display:none;">Pay via PhonePe</button></a>
+      </div>
+    </div>
+  </div>
 
   <script>
     const SUPABASE_URL = "https://mqslfvseexirbrsxpuws.supabase.co";
@@ -33,7 +116,6 @@
         return;
       }
 
-      // Step 1: Check if feedback already exists
       const queryURL = `${SUPABASE_URL}/rest/v1/feedback?block=eq.${block}&flat=eq.${flat}&select=feedback`;
       const existing = await fetch(queryURL, {
         headers: {
@@ -46,14 +128,13 @@
 
       if (result.length > 0) {
         const oldFeedback = result[0].feedback;
-        const confirmOverwrite = confirm(`Feedback already exists:\n"${oldFeedback}"\n\nDo you want to overwrite it?`);
+        const confirmOverwrite = confirm(`Feedback already exists:\n\"${oldFeedback}\"\n\nDo you want to overwrite it?`);
         if (!confirmOverwrite) {
           status.innerText = "❌ Submission canceled.";
           status.className = "error";
           return;
         }
 
-        // Overwrite (PATCH)
         const patchURL = `${SUPABASE_URL}/rest/v1/feedback?block=eq.${block}&flat=eq.${flat}`;
         const patchRes = await fetch(patchURL, {
           method: "PATCH",
@@ -73,9 +154,7 @@
           status.innerText = "❌ Error updating feedback.";
           status.className = "error";
         }
-
       } else {
-        // Insert new
         const postRes = await fetch(`${SUPABASE_URL}/rest/v1/feedback`, {
           method: "POST",
           headers: {
@@ -99,6 +178,52 @@
       document.getElementById("block").value = "";
       document.getElementById("flat").value = "";
       document.getElementById("feedback").value = "";
+    }
+
+    async function calculatePayment() {
+      const block = document.getElementById("blockPay").value.trim();
+      const flat = document.getElementById("flatPay").value.trim();
+      const orderStatus = document.getElementById("orderStatus");
+      const payButton = document.getElementById("payButton");
+      const gpayLink = document.getElementById("gpayLink");
+
+      if (!block || !flat) {
+        orderStatus.innerText = "❌ Please select both Block and Flat Number.";
+        orderStatus.className = "error";
+        payButton.style.display = "none";
+        return;
+      }
+
+       const url = `${SUPABASE_URL}/rest/v1/orderInfo?block=eq.${block}&flat=eq.${flat}&select=kgs`;
+       const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xc2xmdnNlZXhpcmJyc3hwdXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NDI4OTEsImV4cCI6MjA2NjMxODg5MX0.bSPcphsl_YOtv3_z07AjU-3BX6wiueW5_xan5KR2f-U";
+
+      const res = await fetch(url, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+
+      const data = await res.json();
+      if (data.length === 0 || !data[0].kgs) {
+        orderStatus.innerText = "❌ No mango order found for this flat.";
+        orderStatus.className = "error";
+        payButton.style.display = "none";
+        return;
+      }
+
+      const kgs = data[0].kgs;
+      const amount = kgs * 99;
+
+      orderStatus.innerText = `✅ ${kgs} kg ordered. Total amount: ₹${amount}`;
+      orderStatus.className = "";
+      gpayLink.href = `https://pay.google.com/gp/p/ui/pay?recipient=+919676213294&amount=${amount}00&currency=INR&note=Payment%20for%20${kgs}kg%20mango%20-%20Block%20${block}%20Flat%20${flat}`;
+
+      // Add PhonePe UPI link (as fallback or alternative)
+      const phonepeLink = `upi://pay?pa=9676213294@upi&pn=Sindhura%20Mangoes&am=${amount}&cu=INR&tn=Payment%20for%20${kgs}kg%20mango%20-%20Block%20${block}%20Flat%20${flat}`;
+      document.getElementById("phonepeLink").href = phonepeLink;
+      document.getElementById("phonepeBtn").style.display = "block";
+      payButton.style.display = "block";
     }
   </script>
 </body>
