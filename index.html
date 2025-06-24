@@ -6,6 +6,7 @@
     body { font-family: Arial; padding: 20px; max-width: 500px; margin: auto; }
     input, textarea, button { display: block; width: 100%; margin: 10px 0; padding: 10px; }
     #status { color: green; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -21,29 +22,83 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xc2xmdnNlZXhpcmJyc3hwdXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NDI4OTEsImV4cCI6MjA2NjMxODg5MX0.bSPcphsl_YOtv3_z07AjU-3BX6wiueW5_xan5KR2f-U";
 
     async function submitFeedback() {
-      const block = document.getElementById("block").value;
-      const flat = document.getElementById("flat").value;
-      const feedback = document.getElementById("feedback").value;
+      const block = document.getElementById("block").value.trim();
+      const flat = document.getElementById("flat").value.trim();
+      const feedback = document.getElementById("feedback").value.trim();
+      const status = document.getElementById("status");
 
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/feedback`, {
-        method: "POST",
+      if (!block || !flat || !feedback) {
+        status.innerText = "❌ Please fill in all fields.";
+        status.className = "error";
+        return;
+      }
+
+      // Step 1: Check if feedback already exists
+      const queryURL = `${SUPABASE_URL}/rest/v1/feedback?block=eq.${block}&flat=eq.${flat}&select=feedback`;
+      const existing = await fetch(queryURL, {
         headers: {
-          "apikey": SUPABASE_ANON_KEY,
-          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-          "Content-Type": "application/json",
-          "Prefer": "return=minimal"
-        },
-        body: JSON.stringify({ block, flat, feedback })
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+        }
       });
 
-      if (response.ok) {
-        document.getElementById("status").innerText = "✅ Feedback submitted!";
-        document.getElementById("block").value = "";
-        document.getElementById("flat").value = "";
-        document.getElementById("feedback").value = "";
+      const result = await existing.json();
+
+      if (result.length > 0) {
+        const oldFeedback = result[0].feedback;
+        const confirmOverwrite = confirm(`Feedback already exists:\n"${oldFeedback}"\n\nDo you want to overwrite it?`);
+        if (!confirmOverwrite) {
+          status.innerText = "❌ Submission canceled.";
+          status.className = "error";
+          return;
+        }
+
+        // Overwrite (PATCH)
+        const patchURL = `${SUPABASE_URL}/rest/v1/feedback?block=eq.${block}&flat=eq.${flat}`;
+        const patchRes = await fetch(patchURL, {
+          method: "PATCH",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({ feedback })
+        });
+
+        if (patchRes.ok) {
+          status.innerText = "✅ Feedback updated successfully!";
+          status.className = "";
+        } else {
+          status.innerText = "❌ Error updating feedback.";
+          status.className = "error";
+        }
+
       } else {
-        document.getElementById("status").innerText = "❌ Error submitting feedback.";
+        // Insert new
+        const postRes = await fetch(`${SUPABASE_URL}/rest/v1/feedback`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({ block, flat, feedback })
+        });
+
+        if (postRes.ok) {
+          status.innerText = "✅ Feedback submitted!";
+          status.className = "";
+        } else {
+          status.innerText = "❌ Error submitting feedback.";
+          status.className = "error";
+        }
       }
+
+      document.getElementById("block").value = "";
+      document.getElementById("flat").value = "";
+      document.getElementById("feedback").value = "";
     }
   </script>
 </body>
