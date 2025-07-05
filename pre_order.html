@@ -1,67 +1,108 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Submit Pre-Order</title>
+  <title>IVC Mango Pre-Order</title>
   <style>
-    body { font-family: Arial; padding: 20px; max-width: 600px; margin: auto; }
-    input, select { width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; }
-    button { background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; }
+    body { font-family: Arial; padding: 20px; max-width: 700px; margin: auto; background: #f9f9f9; }
+    h2 { color: #d35400; }
+    .info, .existing, .success, .error { margin-top: 15px; }
     .success { color: green; }
     .error { color: red; }
+    .image { width: 100%; max-height: 300px; object-fit: cover; margin: 10px 0; border-radius: 8px; }
+    input { width: 100%; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #ccc; }
+    button { background-color: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+    .highlight { background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin-top: 20px; border-radius: 6px; }
   </style>
 </head>
 <body>
-  <h2>Submit Your Pre-Order</h2>
+  <h2>🥭 Organic Mango Pre-Order — IVC Residents Only</h2>
+
+  <img class="image" src="https://uploadthing.com/f/efc046a3-1644-4606-97a4-fd5c74728ef8-WhatsApp%20Image%202025-07-05%20at%2017.45.03.jpeg" alt="Freshly harvested mangoes">
+  <img class="image" src="https://uploadthing.com/f/9e160402-9ac1-41a6-a3d6-36b09054b73e-WhatsApp%20Image%202025-07-05%20at%2017.45.52.jpeg" alt="Bagged mangoes in farm">
+
+  <div class="highlight">
+    ✅ ₹150 per kg | 🚚 Delivery on <strong>12 July 2025</strong><br>
+    🧺 Packed based on pre-order | 🌱 100% Organic | 🚫 No Chemicals<br>
+    🏡 Exclusive Offer for <strong>IVC Residents</strong> Only!
+  </div>
+
   <form id="orderForm">
     <label>Block:</label>
     <input type="text" id="block" required>
 
     <label>Flat Number:</label>
-    <input type="text" id="flat" required>
+    <input type="text" id="flat_number" required>
 
-    <label>Kgs:</label>
-    <input type="number" id="kgs" min="1">
+    <label>Quantity (in Kgs):</label>
+    <input type="number" id="kgs" min="1" required>
 
     <label>Mobile Number:</label>
-    <input type="text" id="mobile" required>
+    <input type="text" id="mobile_number" required>
 
-    <button type="submit">Submit Order</button>
-    <p id="message"></p>
+    <button type="submit">Submit Pre-Order</button>
   </form>
+
+  <div class="info" id="infoMsg"></div>
+  <div class="existing" id="existingMsg"></div>
+  <div class="success" id="successMsg"></div>
+  <div class="error" id="errorMsg"></div>
 
   <script>
     const SUPABASE_URL = "https://mqslfvseexirbrsxpuws.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xc2xmdnNlZXhpcmJyc3hwdXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NDI4OTEsImV4cCI6MjA2NjMxODg5MX0.bSPcphsl_YOtv3_z07AjU-3BX6wiueW5_xan5KR2f-U";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xc2xmdnNlZXhpcmJyc3hwdXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NDI4OTEsImV4cCI6MjA2NjMxODg5MX0.bSPcphsl_YOtv3_z07AjU-3BX6wiueW5_xan5KR2f-U";
 
-    document.getElementById("orderForm").addEventListener("submit", async function(e) {
+    const form = document.getElementById("orderForm");
+    const infoMsg = document.getElementById("infoMsg");
+    const existingMsg = document.getElementById("existingMsg");
+    const successMsg = document.getElementById("successMsg");
+    const errorMsg = document.getElementById("errorMsg");
+
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      infoMsg.textContent = '';
+      existingMsg.textContent = '';
+      successMsg.textContent = '';
+      errorMsg.textContent = '';
 
-      const data = {
-        block: document.getElementById("block").value.trim().toUpperCase(),
-        flat_number: document.getElementById("flat").value.trim(),
-        kgs: parseInt(document.getElementById("kgs").value || "0"),
-        mobile_number: document.getElementById("mobile").value.trim()
+      const block = document.getElementById("block").value.trim().toUpperCase();
+      const flat = document.getElementById("flat_number").value.trim();
+      const kgs = parseInt(document.getElementById("kgs").value.trim());
+      const mobile = document.getElementById("mobile_number").value.trim();
+
+      const checkURL = `${SUPABASE_URL}/rest/v1/pre_order_info?block=eq.${block}&flat_number=eq.${flat}`;
+      const headers = {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`
       };
 
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/pre_order_info?on_conflict=flat_number,block`, {
+      const checkRes = await fetch(checkURL, { headers });
+      const existing = await checkRes.json();
+
+      if (existing.length > 0) {
+        const oldKgs = existing[0].kgs;
+        if (!confirm(`You already have a pre-order for ${oldKgs} kg(s) from Block ${block}, Flat ${flat}. Do you want to override it?`)) {
+          infoMsg.textContent = "No changes made.";
+          return;
+        }
+      }
+
+      const upsertURL = `${SUPABASE_URL}/rest/v1/pre_order_info?on_conflict=flat_number,block`;
+      const postRes = await fetch(upsertURL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ block, flat_number: flat, kgs, mobile_number: mobile })
       });
 
-      const messageEl = document.getElementById("message");
-      if (res.ok) {
-        messageEl.textContent = "✅ Order saved successfully (new or updated)!";
-        messageEl.className = "success";
-        document.getElementById("orderForm").reset();
+      if (postRes.ok) {
+        successMsg.textContent = "✅ Your order has been saved successfully!";
+        form.reset();
       } else {
-        const error = await res.text();
-        messageEl.textContent = `❌ Error: ${error}`;
-        messageEl.className = "error";
+        const error = await postRes.text();
+        errorMsg.textContent = `❌ Error: ${error}`;
       }
     });
   </script>
