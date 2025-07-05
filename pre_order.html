@@ -1,1 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Submit Pre-Order</title>
+  <style>
+    body { font-family: Arial; padding: 20px; max-width: 600px; margin: auto; }
+    input, select { width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; }
+    button { background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h2>Submit Your Pre-Order</h2>
+  <form id="orderForm">
+    <label>Block:</label>
+    <input type="text" id="block" required>
+
+    <label>Flat Number:</label>
+    <input type="text" id="flat" required>
+
+    <label>Kgs:</label>
+    <input type="number" id="kgs" min="1">
+
+    <label>Mobile Number:</label>
+    <input type="text" id="mobile" required>
+
+    <button type="submit">Submit Order</button>
+    <p id="message"></p>
+  </form>
+
+  <script>
+    const SUPABASE_URL = "https://mqslfvseexirbrsxpuws.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xc2xmdnNlZXhpcmJyc3hwdXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NDI4OTEsImV4cCI6MjA2NjMxODg5MX0.bSPcphsl_YOtv3_z07AjU-3BX6wiueW5_xan5KR2f-U";
+
+    document.getElementById("orderForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const data = {
+        block: document.getElementById("block").value,
+        flat_number: document.getElementById("flat").value,
+        kgs: parseInt(document.getElementById("kgs").value || "0"),
+        mobile_number: document.getElementById("mobile").value
+      };
+
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/pre_order_info`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify(data)
+      });
+
+      const messageEl = document.getElementById("message");
+      if (res.ok) {
+        messageEl.textContent = "✅ Order submitted successfully!";
+        messageEl.className = "success";
+        document.getElementById("orderForm").reset();
+      } else {
+        const error = await res.text();
+        messageEl.textContent = `❌ Error: ${error}`;
+        messageEl.className = "error";
+      }
+    });
+  </script>
+</body>
+</html>
 
