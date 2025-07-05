@@ -37,13 +37,13 @@
       e.preventDefault();
 
       const data = {
-        block: document.getElementById("block").value,
-        flat_number: document.getElementById("flat").value,
+        block: document.getElementById("block").value.trim().toUpperCase(),
+        flat_number: document.getElementById("flat").value.trim(),
         kgs: parseInt(document.getElementById("kgs").value || "0"),
-        mobile_number: document.getElementById("mobile").value
+        mobile_number: document.getElementById("mobile").value.trim()
       };
 
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/pre_order_info`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/pre_order_info?on_conflict=flat_number,block`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,7 +55,7 @@
 
       const messageEl = document.getElementById("message");
       if (res.ok) {
-        messageEl.textContent = "✅ Order submitted successfully!";
+        messageEl.textContent = "✅ Order saved successfully (new or updated)!";
         messageEl.className = "success";
         document.getElementById("orderForm").reset();
       } else {
@@ -67,4 +67,3 @@
   </script>
 </body>
 </html>
-
