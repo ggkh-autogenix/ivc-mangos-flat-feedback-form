@@ -160,7 +160,8 @@
           }
         }
 
-        const upsertURL = `${API_BASE}?on_conflict=flat_number,block`;
+        // ✅ FIXED: Add return=minimal to support UPSERT without duplication
+        const upsertURL = `${API_BASE}?on_conflict=flat_number,block&return=minimal`;
         const upsertRes = await fetch(upsertURL, {
           method: "POST",
           headers: {
@@ -168,7 +169,12 @@
             apikey: SUPABASE_KEY,
             Authorization: `Bearer ${SUPABASE_KEY}`
           },
-          body: JSON.stringify({ block, flat_number: flat, kgs, mobile_number: mobile })
+          body: JSON.stringify({
+            block,
+            flat_number: flat,
+            kgs,
+            mobile_number: mobile
+          })
         });
 
         if (upsertRes.ok) {
