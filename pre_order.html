@@ -156,15 +156,14 @@
           }
         }
 
-        // ✅ UPSERT using conflict resolution
-        const upsertURL = `${API_BASE}?on_conflict=flat_number,block&return=minimal`;
-        const upsertRes = await fetch(upsertURL, {
+        // ✅ FIXED: UPSERT with correct Prefer header
+        const upsertRes = await fetch(`${API_BASE}?on_conflict=flat_number,block`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             apikey: SUPABASE_KEY,
             Authorization: `Bearer ${SUPABASE_KEY}`,
-            Prefer: "resolution=merge-duplicates"
+            Prefer: "resolution=merge-duplicates,return=minimal"
           },
           body: JSON.stringify({
             block,
